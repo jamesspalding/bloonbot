@@ -9,7 +9,7 @@ import cv2
 import numpy as np
 
 #load tesseract
-with open("tess_path.txt") as my_file:
+with open("assets/tess_path.txt") as my_file:
     tess_path = my_file.read()
 pytesseract.pytesseract.tesseract_cmd = tess_path
 
@@ -53,20 +53,48 @@ def get_game_info():
     return(varlist)
 
 
-#recognize round end
-def is_new_round():
-    
+#self explanitory
+def screen_cap():
     pyautogui.hotkey('alt', 'prtscr')
     img = ImageGrab.grabclipboard()
     img.save('temp.png')
+    return(cv2.imread('temp.png'))
 
-    play_button = cv2.imread('play_button.png')
-    screen = cv2.imread('temp.png')
 
+#recognize round end
+def round_state():
+    time.sleep(2)
+    screen = screen_cap()
+
+    #new round
+    play_button = cv2.imread('assets/play_button.png')
     result = cv2.matchTemplate(screen, play_button, cv2.TM_CCOEFF_NORMED)
-    locations = np.where(result >= .8)
+    location = np.where(result == 1)
+    newround = len(location[0]) > 0
 
-    if len(locations[0]) > 0:
-        return(True)
+    #game over
+    restart_button = cv2.imread('assets/restart_button.png')
+    result = cv2.matchTemplate(screen, restart_button, cv2.TM_CCOEFF_NORMED)
+    location = np.where(result == 1)
+    gameover = len(location[0]) > 0
+    
+
+    if gameover:
+        #click restart
+        pyautogui.moveTo(location[0][0], location[1][0])
+        pydirectinput.click()
+
+        time.sleep(.25)
+        restart_text = cv2.imread('assets/restart_text.png')
+        result = cv2.matchTemplate(screen_cap(), restart_text, cv2.TM_CCOEFF_NORMED)
+        location = np.where(result >= .8)
+
+        #confirm restart
+        pyautogui.moveTo(location[1][0], location[0][0])
+        pydirectinput.click()        
+        return(2)
+            
+    if newround:
+        return(1)
     else:
-        return(False)
+        return(0)

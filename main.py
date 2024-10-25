@@ -1,9 +1,19 @@
-import bloon_functions
+import bloon_functions as bfn
+import pytesseract
+import re
+import pyautogui
+import pydirectinput
+import time
+from PIL import ImageGrab, Image
+import keyboard
+import cv2
+import numpy as np
 
-round = int(input("Enter starting round: "))
-pyautogui.hotkey('alt', 'tab')
+
 
 def main():
+    round = int(input("Enter starting round: "))
+    pyautogui.hotkey('alt', 'tab')
     while True:
         if keyboard.is_pressed('q'):
             print('Ending...')
@@ -11,13 +21,17 @@ def main():
         else:
 
             time.sleep(2) #time between checks
-            if is_new_round():
+            if bfn.round_state() == 1:
                 print('Round ',round)
                 round = round+1
-                print(get_game_info())
+                print(bfn.get_game_info())
                 pydirectinput.press('space')
+
+            if bfn.round_state() == 2:
+                print("Game over")
+
             else:
-                print('Ongoing round')  
+                print('Ongoing round...')  
 
 
 
