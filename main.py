@@ -8,12 +8,14 @@ from PIL import ImageGrab, Image
 import keyboard
 import cv2
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 
 def main():
-    round = int(input("Enter starting round: "))
+    round = int(input("Enter starting round: ")) #change this
     pyautogui.hotkey('alt', 'tab')
+    placement_coords = bfn.define_grid()
+
     while True:
         if keyboard.is_pressed('q'):
             print('Ending...')

@@ -7,6 +7,7 @@ from PIL import ImageGrab, Image
 import keyboard
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 #load tesseract
 with open("assets/tess_path.txt") as my_file:
@@ -63,7 +64,6 @@ def screen_cap():
 
 #recognize round end
 def round_state():
-    time.sleep(2)
     screen = screen_cap()
 
     #new round
@@ -98,3 +98,40 @@ def round_state():
         return(1)
     else:
         return(0)
+    
+
+#create map grid for placement reference
+def define_grid(precision = 100, save = False):
+    #get/crop image
+    pyautogui.hotkey('alt', 'prtscr')
+    img = ImageGrab.grabclipboard()
+    img.save('temp.png')
+    im = Image.open('temp.png')
+    width, height = im.size
+
+    left = 0 * width
+    right = .85 * width
+    top = .11 * height
+    bottom = height
+
+    image = im.crop((left, top, right, bottom))
+    image_arr = np.array(image)
+
+    #add grid
+    fig, ax = plt.subplots()
+    ax.imshow(image)
+    ax.grid(True, color='white', linestyle='-')
+    ax.set_xticks(np.arange(0, image_arr.shape[1], precision))
+    ax.set_yticks(np.arange(0, image_arr.shape[0], precision))
+
+    #get coordinates map
+    x_centers = np.arange(precision / 2, image_arr.shape[1], precision)
+    y_centers = np.arange(precision / 2, image_arr.shape[0], precision)
+    X, Y = np.meshgrid(x_centers, y_centers)
+    coordinates = np.column_stack((X.ravel(), Y.ravel()))
+
+    if save:
+        plt.savefig('map_grid.png')
+
+    plt.close(fig)
+    return(coordinates)
