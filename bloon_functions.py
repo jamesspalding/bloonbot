@@ -8,6 +8,8 @@ import keyboard
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+import math
 
 #load tesseract
 with open("assets/tess_path.txt") as my_file:
@@ -135,3 +137,27 @@ def define_grid(precision = 100, save = False):
 
     plt.close(fig)
     return(coordinates)
+
+
+#get money values as df
+def get_costs(difficulty):
+    base_costs = pd.read_csv('assets/base_costs.csv')
+    upgrade_costs = pd.read_csv('assets/upgrade_costs.csv')
+
+    if difficulty == 'easy':
+        base_costs['cost'] * 0.85
+        upgrade_costs['cost'] = upgrade_costs['cost'] * 0.85
+        return(base_costs,upgrade_costs)
+    
+    if difficulty == 'hard':
+        base_costs['cost'] = base_costs['cost'] * 1.08
+        upgrade_costs['cost'] = upgrade_costs['cost'] * 1.08
+        return(base_costs,upgrade_costs)
+    
+    if difficulty == 'impoppable':
+        base_costs['cost'] = base_costs['cost'] * 1.2
+        upgrade_costs['cost'] = upgrade_costs['cost'] * 1.2
+        return(base_costs,upgrade_costs)
+    
+    else:
+        return(base_costs,upgrade_costs)
