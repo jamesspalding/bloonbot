@@ -3,7 +3,7 @@ import re
 import pyautogui
 import pydirectinput
 import time
-from PIL import ImageGrab, Image
+from PIL import ImageGrab, Image, ImageDraw
 import keyboard
 import cv2
 import numpy as np
@@ -24,44 +24,54 @@ def img_to_num(img):
     return([int(s) for s in re.findall(r'\d+', imgstr)])
 
 
-#returns health, money, and round
-def get_game_info():
-
-    pyautogui.hotkey('alt', 'prtscr')
-    img = ImageGrab.grabclipboard()
-    img.save('temp.png')
-    im = Image.open('temp.png')
-    width, height = im.size
-    varlist = []
-    
-    while True:
-        left = .07 * width
-        right = .27 * width
-        top = .048 * height
-        bottom = .1 * height
-        
-        im1 = im.crop((left, top, right, bottom))
-        im1.save('temp1.png')
-        hpmoney = img_to_num('temp1.png')
-
-        if len(hpmoney) !=2:
-            print(len(hpmoney), ' value found, retrying...')
-        else:
-            varlist = hpmoney
-            break
-
-    if len(str(varlist[0])) > 3:
-       varlist[0] = varlist[0] // 10
-
-    return(varlist)
-
-
 #self explanitory
 def screen_cap():
     pyautogui.hotkey('alt', 'prtscr')
     img = ImageGrab.grabclipboard()
     img.save('temp.png')
     return(cv2.imread('temp.png'))
+
+
+#get hp, money, round
+def get_game_info():
+    screen_cap()
+    im = Image.open('temp.png')
+    width, height = im.size
+
+    ##### HP + Money #####
+    left = .07 * width
+    right = .30 * width
+    top = .048 * height
+    bottom = .1 * height
+    im1 = im.crop((left, top, right, bottom))
+    im1.save('temp1.png')
+
+    #obscure image
+    image = Image.open("temp1.png").convert("L")
+    draw = ImageDraw.Draw(image)
+    box_coordinates = (90, 0, 231, 70)
+    draw.rectangle(box_coordinates, fill="black")
+    image = image.point(lambda p: 255 if p > 250 else 0)
+    image.save("temp1.png")
+
+    hp, money = img_to_num('temp1.png')
+
+    #### Round #####
+    left = .745 * width
+    right = .7728 * width
+    top = .048 * height
+    bottom = .1 * height
+    im2 = im.crop((left, top, right, bottom))
+    im2.save('temp2.png')
+
+    #obscure image
+    image = Image.open("temp2.png").convert("L")
+    image = image.point(lambda p: 255 if p > 250 else 0)
+    image.save("temp2.png")
+
+    round = img_to_num('temp2.png')[0] + 1 #tells what next round is
+
+    return(hp,money,round)
 
 
 #recognize round end

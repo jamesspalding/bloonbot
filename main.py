@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 
 
 def main():
-    round = int(input("Enter starting round: ")) #change this
     pyautogui.hotkey('alt', 'tab')
     placement_coords = bfn.define_grid()
 
@@ -24,9 +23,8 @@ def main():
 
             time.sleep(2) #time between checks
             if bfn.round_state() == 1:
-                print('Round ',round)
-                round = round+1
-                print(bfn.get_game_info())
+                hp, money, round = bfn.get_game_info()
+                print(hp, money, round)
                 pydirectinput.press('space')
 
             if bfn.round_state() == 2:
