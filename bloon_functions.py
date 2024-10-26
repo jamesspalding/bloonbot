@@ -69,7 +69,7 @@ def get_game_info():
     image = image.point(lambda p: 255 if p > 250 else 0)
     image.save("temp2.png")
 
-    round = img_to_num('temp2.png')[0] + 1 #tells what next round is
+    round = img_to_num('temp2.png')
 
     return(hp,money,round)
 
@@ -146,12 +146,12 @@ def define_grid(precision = 100, save = False):
         plt.savefig('map_grid.png')
 
     plt.close(fig)
-    return(coordinates)
+    return(pd.DataFrame(coordinates))
 
 
 #get money values as df
 def get_costs(difficulty):
-    base_costs = pd.read_csv('assets/base_costs.csv')
+    base_costs = pd.read_csv('assets/base_costs2.csv') #base_costs2 excludes water towers
     upgrade_costs = pd.read_csv('assets/upgrade_costs.csv')
 
     if difficulty == 'easy':
@@ -171,3 +171,29 @@ def get_costs(difficulty):
     
     else:
         return(base_costs,upgrade_costs)
+    
+
+#place tower
+def place_tower(money,base_costs,coords):
+    # filter to afforded costs
+    towers_afforded = base_costs[base_costs['cost'] <= money]
+
+    # select tower
+    tower = towers_afforded.sample(n=1)
+    tower = tower.reset_index(drop=True)
+
+    # select space and drop from coords
+    space = coords.sample(n=1)
+    coords = coords.drop(space.index).reset_index(drop=True)
+    space = space.reset_index(drop=True)
+
+    # combine tower and space and index into new df
+    obs = pd.concat([space,tower], axis=1)
+    obs = obs.rename({0:'x',1:'y'}, axis=1)
+
+    #place tower
+    pyautogui.moveTo(obs['x'], obs['y'])
+    pydirectinput.press(obs['hotkey'])
+    pydirectinput.click()        
+
+    return(obs)
