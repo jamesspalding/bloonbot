@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import warnings
 import json
+import random
 
 
 def main():
@@ -20,7 +21,7 @@ def main():
     pyautogui.hotkey('alt', 'tab')
     placement_coords = bfn.define_grid()
     base_costs, upgrade_costs = bfn.get_costs('easy') #Change difficulty if needed
-    towers_list = [] #used by place_tower
+    towers_df = pd.DataFrame()
     round = bfn.get_round() #only needs to run once
     round = round - 1
     starting_round = round
@@ -28,11 +29,19 @@ def main():
     spend_round = True
     last_money = 0
     last_hp = 0
+    choice = 1
+    run = True
 
 
+    while run:
 
-    while True:
+        if keyboard.is_pressed('p'): #quit program and export results to csv
+            print('Quitting...')
+            run = bfn.stop_program(towers_df)
+
         state = bfn.round_state()
+
+
 
         if state == 1:
             #check round stats
@@ -49,15 +58,19 @@ def main():
 
 
             #place towers
-            if not first_run:
+            if not first_run: 
                 spend_round = bfn.spend(money,hp,last_money,last_hp)
+                choice = random.randint(1, 2)
+                
 
             if spend_round:
-                bfn.place_tower(base_costs,placement_coords,towers_list,money,round)
+                if  choice == 1: #make a better way later
+                    towers_df = bfn.place_tower(base_costs,placement_coords,towers_df,money)
+                    print(towers_df)
 
-            #export placement as json
-            with open('data.json', 'w') as f:
-                json.dump(towers_list, f)
+                else:
+                    towers_df = bfn.upgrade_tower(towers_df,upgrade_costs,money)
+                    print(towers_df)
 
 
 

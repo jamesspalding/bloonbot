@@ -182,7 +182,7 @@ def get_costs(difficulty):
 
 
 #place tower
-def place_tower(base_costs,coords,towers_list,money,round):
+def place_tower(base_costs,coords,towers_df,money):
 
     #select tower
     towers_afforded = base_costs[base_costs['cost'] <= money]
@@ -230,10 +230,12 @@ def place_tower(base_costs,coords,towers_list,money,round):
             return
 
 
+    placement_list = [x, y, name, 0, 0, 0] #coords, type, upgrades
+    df = pd.DataFrame([placement_list], columns=["x", "y", "type", "top_path", "middle_path", "bottom_path"])
+    towers_df = towers_df._append(df)
+    return(towers_df)
 
-    placement_list = [x, y, name, cost, round]
-    towers_list.append(placement_list)
-    return
+
 
 
 #determine to save or spend for round
@@ -264,12 +266,152 @@ def spend(money,lives,last_money,last_lives): #manually tweak these values to fi
 
     return(result)
 
+
+
+def stop_program(towers_df):
+    towers_df.to_csv('data.csv', index=False)
+    return(False)
+
+
+
+# def upgrade_tower(towers_df, upgrade_costs, money):
+#     i=0
+#     locked_path = 'none'
+#     while True:
+#         selected_tower = towers_df.sample(1)
+#         original_index = selected_tower.index[0]
+
+#         #check for crosspath
+#         upgraded_paths = int(sum([(selected_tower['top_path'].iloc[0] != 0),(selected_tower['middle_path'].iloc[0] != 0),(selected_tower['bottom_path'].iloc[0] != 0)]))
+#         if upgraded_paths == 2:
+#             locked_path = selected_tower.columns[selected_tower.eq(0).any()][0]
+
+#             print(f"{locked_path} is locked")
+
+#             available_upgrades = upgrade_costs[(upgrade_costs['tower'].isin(selected_tower['type']))&
+#                                                (upgrade_costs['cost']<money)&
+#                                                (upgrade_costs['path'] != locked_path)]
+            
+#         else:
+#             available_upgrades = upgrade_costs[(upgrade_costs['tower'].isin(selected_tower['type']))&
+#                                                (upgrade_costs['cost']<money)]
+
+#         available_upgrades = available_upgrades[((available_upgrades['path']==('top_path'))&
+#                                                 (available_upgrades['tier']==selected_tower['top_path'].iloc[0]+1))|
+#                                                 ((available_upgrades['path']==('middle_path'))&
+#                                                 (available_upgrades['tier']==selected_tower['middle_path'].iloc[0]+1))|
+#                                                 ((available_upgrades['path']==('bottom_path'))&
+#                                                 (available_upgrades['tier']==selected_tower['bottom_path'].iloc[0]+1))]
+
+
+#         if len(available_upgrades) != 0:
+#             selected_upgrade = available_upgrades.sample(1)
+#             break
+
+#         i=i+1
+#         if i == 5:
+#             print('No upgrades found.')
+#             break
+
+
+#     x=float(selected_tower['x'].iloc[0])
+#     y=float(selected_tower['y'].iloc[0])
+#     pyautogui.moveTo(x, y)
+#     pydirectinput.click()
+
+#     selected_upgrade_path = selected_upgrade['path'].iloc[0]
+
+#     if selected_upgrade_path == 'top_path':
+#         pydirectinput.press(',')
+#         selected_tower['top_path'] = selected_tower['top_path'] + 1
+#         pydirectinput.press('esc')
+
+#     if selected_upgrade_path == 'middle_path':
+#         pydirectinput.press('.')
+#         selected_tower['middle_path'] = selected_tower['middle_path'] + 1
+#         pydirectinput.press('esc')
+
+#     if selected_upgrade_path == 'bottom_path':
+#         pydirectinput.press('/')
+#         selected_tower['bottom_path'] = selected_tower['bottom_path'] + 1
+#         pydirectinput.press('esc')
+
+#     towers_df.loc[original_index] = selected_tower.iloc[0].values
+#     print(f"{selected_tower['type'].iloc[0]} upgraded to ({selected_tower['top_path'].iloc[0]},{selected_tower['middle_path'].iloc[0]},{selected_tower['bottom_path'].iloc[0]})")
+#     return(towers_df)
     
 
 
+
+
+
+def upgrade_tower(towers_df, upgrade_costs, money):
+    i = 0
+    locked_path = 'none'
     
+    while True:
+        # Sample one tower from towers_df
+        selected_tower = towers_df.sample(1)
+        original_index = selected_tower.index[0]  # Capture the original index
 
+        # Check for crosspath
+        upgraded_paths = int(sum([(selected_tower['top_path'].iloc[0] != 0),
+                                   (selected_tower['middle_path'].iloc[0] != 0),
+                                   (selected_tower['bottom_path'].iloc[0] != 0)]))
+        if upgraded_paths == 2:
+            locked_path = selected_tower.columns[selected_tower.eq(0).any()][0]
+            print(f"{locked_path} is locked")
 
+            available_upgrades = upgrade_costs[(upgrade_costs['tower'].isin(selected_tower['type'])) &
+                                               (upgrade_costs['cost'] < money) &
+                                               (upgrade_costs['path'] != locked_path)]
+        else:
+            available_upgrades = upgrade_costs[(upgrade_costs['tower'].isin(selected_tower['type'])) &
+                                               (upgrade_costs['cost'] < money)]
 
+        available_upgrades = available_upgrades[
+            ((available_upgrades['path'] == 'top_path') & 
+             (available_upgrades['tier'] == selected_tower['top_path'].iloc[0] + 1)) |
+            ((available_upgrades['path'] == 'middle_path') & 
+             (available_upgrades['tier'] == selected_tower['middle_path'].iloc[0] + 1)) |
+            ((available_upgrades['path'] == 'bottom_path') & 
+             (available_upgrades['tier'] == selected_tower['bottom_path'].iloc[0] + 1))
+        ]
 
+        if len(available_upgrades) != 0:
+            selected_upgrade = available_upgrades.sample(1)
+            break
 
+        i += 1
+        if i == 5:
+            print('No upgrades found.')
+            return towers_df
+
+    # Place the tower
+    x = float(selected_tower['x'].iloc[0])
+    y = float(selected_tower['y'].iloc[0])
+    pyautogui.moveTo(x, y)
+    pydirectinput.click()
+
+    selected_upgrade_path = selected_upgrade['path'].iloc[0]
+
+    # Upgrade the selected tower's path
+    if selected_upgrade_path == 'top_path':
+        pydirectinput.press(',')
+        towers_df.at[original_index, 'top_path'] += 1  # Update using .at for single scalar
+    elif selected_upgrade_path == 'middle_path':
+        pydirectinput.press('.')
+        towers_df.at[original_index, 'middle_path'] += 1  # Update using .at for single scalar
+    elif selected_upgrade_path == 'bottom_path':
+        pydirectinput.press('/')
+        towers_df.at[original_index, 'bottom_path'] += 1  # Update using .at for single scalar
+
+    pydirectinput.press('esc')
+
+    # No need to reassign the entire selected_tower; just update the specific paths
+    print(f"{selected_tower['type'].iloc[0]} upgraded to "
+          f"({towers_df.at[original_index, 'top_path']}, "
+          f"{towers_df.at[original_index, 'middle_path']}, "
+          f"{towers_df.at[original_index, 'bottom_path']})")
+    
+    return towers_df
