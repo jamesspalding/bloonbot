@@ -4,11 +4,7 @@ Machine learning model to play Bloons TD6
 
 ### Todo
 
-* [ ] Improve data accuracy with tesseract
-
-* [ ] Create GameInfo class to obtain specific values
-
-* [ ] Place towers at coordinates
+* [ ] Have bot play full game without bugs
 
 * [ ] Create model
 
