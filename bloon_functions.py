@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import math
+import random
 
 #load tesseract
 with open("assets/tess_path.txt") as my_file:
@@ -18,10 +19,11 @@ pytesseract.pytesseract.tesseract_cmd = tess_path
 
 
 #extract text from image
-def img_to_num(img):
-    imgstr = pytesseract.image_to_string(img,config='--psm 6').replace(',', '')
-    imgstr = imgstr.replace(';', '')
-    return([int(s) for s in re.findall(r'\d+', imgstr)])
+def img_to_num(img):   
+    imgstr = pytesseract.image_to_string(img, lang='bloons')
+    imgstr = imgstr.replace(',', '')
+    num_list = [int(s) for s in re.findall(r'\d+', imgstr)]
+    return(num_list)
 
 
 #self explanitory
@@ -32,7 +34,30 @@ def screen_cap():
     return(cv2.imread('temp.png'))
 
 
-#get hp, money, round
+#get round
+def get_round():
+    screen_cap()
+    im = Image.open('temp.png')
+    width, height = im.size
+
+    left = .745 * width
+    right = .814 * width
+    top = .055 * height
+    bottom = .1 * height
+    im2 = im.crop((left, top, right, bottom))
+    im2.save('temp2.png')
+
+    #obscure image
+    image = Image.open("temp2.png").convert("L")
+    image = image.point(lambda p: 255 if p > 250 else 0) #extract ONLY numbers
+    image.save("temp2.png")
+    round = img_to_num('temp2.png')
+    round = round[0]
+
+    return(round)
+
+
+#get hp, money
 def get_game_info():
     screen_cap()
     im = Image.open('temp.png')
@@ -51,27 +76,10 @@ def get_game_info():
     draw = ImageDraw.Draw(image)
     box_coordinates = (90, 0, 231, 70)
     draw.rectangle(box_coordinates, fill="black")
-    image = image.point(lambda p: 255 if p > 250 else 0)
+    image = image.point(lambda p: 255 if p > 200 else 0)
     image.save("temp1.png")
 
-    hp, money = img_to_num('temp1.png')
-
-    #### Round #####
-    left = .745 * width
-    right = .7728 * width
-    top = .048 * height
-    bottom = .1 * height
-    im2 = im.crop((left, top, right, bottom))
-    im2.save('temp2.png')
-
-    #obscure image
-    image = Image.open("temp2.png").convert("L")
-    image = image.point(lambda p: 255 if p > 250 else 0)
-    image.save("temp2.png")
-
-    round = img_to_num('temp2.png')
-
-    return(hp,money,round)
+    return(img_to_num('temp1.png'))
 
 
 #recognize round end
@@ -151,7 +159,7 @@ def define_grid(precision = 100, save = False):
 
 #get money values as df
 def get_costs(difficulty):
-    base_costs = pd.read_csv('assets/base_costs2.csv') #base_costs2 excludes water towers
+    base_costs = pd.read_csv('assets/base_costs2.csv')
     upgrade_costs = pd.read_csv('assets/upgrade_costs.csv')
 
     if difficulty == 'easy':
@@ -171,29 +179,97 @@ def get_costs(difficulty):
     
     else:
         return(base_costs,upgrade_costs)
-    
+
 
 #place tower
-def place_tower(money,base_costs,coords):
-    # filter to afforded costs
-    towers_afforded = base_costs[base_costs['cost'] <= money]
+def place_tower(base_costs,coords,towers_list,money,round):
 
-    # select tower
+    #select tower
+    towers_afforded = base_costs[base_costs['cost'] <= money]
+    if(len(towers_afforded) == 0):
+        print('No money available.')
+        return
+
     tower = towers_afforded.sample(n=1)
     tower = tower.reset_index(drop=True)
+    name = tower['tower'].iloc[0]
+    hotkey = tower['hotkey'].iloc[0]
+    cost = float(tower['cost'].iloc[0])
 
-    # select space and drop from coords
-    space = coords.sample(n=1)
-    coords = coords.drop(space.index).reset_index(drop=True)
-    space = space.reset_index(drop=True)
+    iteration = 0
+    while True: #loops until valid placement found
+        iteration = iteration + 1
 
-    # combine tower and space and index into new df
-    obs = pd.concat([space,tower], axis=1)
-    obs = obs.rename({0:'x',1:'y'}, axis=1)
+        # select space and drop from coords
+        space = coords.sample(n=1)
+        coords = coords.drop(space.index).reset_index(drop=True) #drop space from pool after selected
+        space = space.reset_index(drop=True)
+        x=float(space[0].iloc[0])
+        y=float(space[1].iloc[0])
 
-    #place tower
-    pyautogui.moveTo(obs['x'], obs['y'])
-    pydirectinput.press(obs['hotkey'])
-    pydirectinput.click()        
+        #try to place tower
+        pyautogui.moveTo(x, y)
+        pydirectinput.press(hotkey)
+        pydirectinput.click()
+    
+        #check if money went down, skip if tesseract can't read money
+        try:
+            _, new_money = get_game_info()
 
-    return(obs)
+            if(new_money != money):
+                print(f"{name} placed at ({x},{y})")
+                break
+
+            if(iteration > 9): #10 tries to find valid placement
+                print('No location found.')
+                pydirectinput.press('esc') #deselects tower
+                return
+
+        except ValueError:
+            print('Tesseract error, skipping...')
+            return
+
+
+
+    placement_list = [x, y, name, cost, round]
+    towers_list.append(placement_list)
+    return
+
+
+#determine to save or spend for round
+def spend(money,lives,last_money,last_lives): #manually tweak these values to find best performance
+    result = False
+    lives_probs = 0
+    money_probs = 0
+    random_chance = 20
+
+    if lives != last_lives:
+        lives_lost = last_lives - lives
+        lives_probs = 15 * lives_lost
+    
+    if money > last_money:
+        round_money = last_money - money
+        money_probs = round_money/30
+
+    totprobs = lives_probs + money_probs + random_chance
+    selection = random.randint(1, 100)
+
+    if selection <= totprobs:
+        result = True
+
+    if result:
+        print("Spending")
+    else:
+        print("Saving")
+
+    return(result)
+
+    
+
+
+    
+
+
+
+
+

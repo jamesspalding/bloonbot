@@ -10,34 +10,73 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import warnings
+import json
 
 
 def main():
+
     #setup
     pyautogui.hotkey('alt', 'tab')
     placement_coords = bfn.define_grid()
     base_costs, upgrade_costs = bfn.get_costs('easy') #Change difficulty if needed
-    towers = pd.DataFrame({'x','y','tower','cost','hotkey'})
+    towers_list = [] #used by place_tower
+    round = bfn.get_round() #only needs to run once
+    round = round - 1
+    starting_round = round
+    first_run = True #Used to set fast forward
+    spend_round = True
+    last_money = 0
+    last_hp = 0
+
+
 
     while True:
-        time.sleep(2) #time between checks
-        if bfn.round_state() == 1:
+        state = bfn.round_state()
+
+        if state == 1:
             #check round stats
-            hp, money, round = bfn.get_game_info()
-            print(hp, money, round)
+            round = round + 1
+            try:
+                hp, money = bfn.get_game_info()
+                print(f"-------Round {round}-------")
+                print(f"Money: {money} Lives: {hp}")
+            except:
+                print('tesseract error: starting round')
+                pydirectinput.press('space')
+                continue
+
+
 
             #place towers
-            tower = bfn.place_tower(money, base_costs, placement_coords)
-            towers = towers._append(tower, ignore_index = True)
-            
+            if not first_run:
+                spend_round = bfn.spend(money,hp,last_money,last_hp)
+
+            if spend_round:
+                bfn.place_tower(base_costs,placement_coords,towers_list,money,round)
+
+            #export placement as json
+            with open('data.json', 'w') as f:
+                json.dump(towers_list, f)
+
+
+
             #start round
+            if first_run:
+                pydirectinput.press('space') #enable ff
+                first_run = False
+
+            last_hp = hp
+            last_money = money
             pydirectinput.press('space')
 
-        if bfn.round_state() == 2:
-            print("Game over")
 
-        else:
-            print('Ongoing round...')  
+
+        if state == 2:
+            print("Game over")
+            round = starting_round
+            first_run = True
+
 
 
 
