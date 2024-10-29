@@ -1,23 +1,29 @@
-# bloonbot
-
-Machine learning model to play Bloons TD6
-
-### Todo
-
-* [ ] Get pop count every 10 rounds
+# Bloonbot
 
 * [ ] Have bot play full game without bugs
 
+* [ ] Teach bot how to take data as input
+
 * [ ] Save game stats and tower stats for each attempt
 
-* [ ] Create model
+A bot which plays BTD6 without human interaction.
+
+Uses tesseract to read game values from screen. Trained off bloons.traineddata to recognize font.
+
+Places towers in grid over map.
+
+Attempts to maximize money while minimizing lives lost.
+
+# Model
+
+* [x] Create model
 
 * [ ] Train model
 
-## Model Idea
+Each attempt (Round 1 - game over) as an observation.
 
-* Each attempt (Round 1 - game over) as an observation
+Fitness determined by rount count, least lives lost, most money saved.
 
-*  Fitness determined by rount count, minimized spend, minimal lives lost per round
+Starts entirely random. Begins making decisions in 2nd generation.
 
-*  Starts entirely random. Begins making decisions in 2nd or 3rd generation
+For each pair of parents in a generation, 2 offspring are created. One using column-wise inheritance, and one using row-wise crossover.
