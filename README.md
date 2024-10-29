@@ -1,10 +1,12 @@
 # Bloonbot
 
-* [ ] Have bot play full game without bugs
-
 * [ ] Teach bot how to take data as input
 
+* [ ] Use round data to inform purchase decisions
+
 * [ ] Save game stats and tower stats for each attempt
+      
+* [ ] Have bot play full game without bugs
 
 A bot which plays BTD6 without human interaction.
 
