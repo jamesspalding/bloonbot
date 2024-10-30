@@ -16,7 +16,8 @@ def main():
     pyautogui.hotkey('alt', 'tab')
     placement_coords = bb.define_grid()
     base_costs, upgrade_costs = bb.get_costs('easy') #Change difficulty if needed
-    towers_df = pd.DataFrame()
+    attempt_towers = pd.DataFrame()
+    attempt_rounds = pd.DataFrame()
     starting_round = bb.get_round() #only needs to run once
     starting_round = starting_round - 1
     attempt = 0
@@ -36,13 +37,22 @@ def main():
         first_run = True 
         choice = 1
         spend_round = True
+
+        
+        if not first_attempt:
+            attempt_towers = pd.concat([attempt_towers, towers_df], ignore_index=True)
+            attempt_towers.to_csv("data/tower_data.csv", index=False)
+
+            attempt_rounds = pd.concat([attempt_rounds, rounds_df], ignore_index=True)
+            attempt_rounds.to_csv("data/attempt_data.csv", index=False)
+        first_attempt = False
+            
+
+        towers_df = pd.DataFrame()
+        rounds_df = pd.DataFrame()
         last_money = 0
         last_hp = 0
 
-        if not first_attempt:
-            pd.towers_df.to_csv(f"data/data_{attempt}.csv", index=False)
-        first_attempt = False
-        
         in_game = True
 
         while in_game:
@@ -55,8 +65,11 @@ def main():
                 if state == 2:
                     print('Game Over')
                     print('Restarting...')
-                    #save run data
-                    in_game = False #exits loop
+                    rounds_df = pd.DataFrame({'attempt':[attempt],
+                                              'fin_round':round,
+                                              'fin_lives':last_hp,
+                                              'fin_cash':last_money})
+                    break #exits loop
 
 
                 if state == 3:
@@ -83,11 +96,15 @@ def main():
 
                 if spend_round:
                     if  choice == 1: #make a better way later
-                        towers_df = bb.place_tower(base_costs,placement_coords,towers_df,money,attempt,round)
+                        tempdf = bb.place_tower(base_costs,placement_coords,towers_df,money,attempt,round)
+                        if tempdf is not None:
+                            towers_df = tempdf
                         print(towers_df)
 
                     else:
-                        towers_df = bb.upgrade_tower(towers_df,upgrade_costs,money)
+                        tempdf = bb.upgrade_tower(towers_df,upgrade_costs,money)
+                        if tempdf is not None:
+                            towers_df = tempdf
                         print(towers_df)
 
 

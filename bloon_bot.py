@@ -102,7 +102,8 @@ def round_state():
 
         #confirm restart
         pyautogui.moveTo(location[1][0], location[0][0])
-        pydirectinput.click()        
+        pydirectinput.click()     
+        time.sleep(1) #letting game reset before running again   
         return(2)
 
     ###freeplay
@@ -253,7 +254,10 @@ def place_tower(base_costs,coords,towers_df,money,attempt,round):
 
     placement_list = [attempt, round, x, y, name, 0, 0, 0] #coords, type, upgrades
     df = pd.DataFrame([placement_list], columns=["attempt", "round_placed", "x", "y", "type", "top_path", "middle_path", "bottom_path"])
-    towers_df = towers_df._append(df)
+    try:
+        towers_df = pd.concat([towers_df,df], ignore_index=True)
+    except:
+        print("Error appending. Continuing.")
     return(towers_df)
 
 
@@ -295,7 +299,7 @@ def stop_program(towers_df):
 
 
 
-#upgrades tower and updates df
+#upgrades tower and updates df CHANGES ALL TOWERS INSTEAD OF ONE
 def upgrade_tower(towers_df, upgrade_costs, money):
     i = 0
     locked_path = 'none'
