@@ -5,7 +5,7 @@
       
 * [x] Have bot play full game without bugs
 
-* [x] Use training map to improve placement accuracy
+* [x] Use training map to improve placement accuracy (Code: ZFFCFDK)
 
 * [ ] Use round data to inform purchase decisions
 
