@@ -4,12 +4,10 @@
 * [x] Save game stats and tower stats for each attempt
       
 * [x] Have bot play full game without bugs
-      
+
+* [x] Use training map to improve placement accuracy
+
 * [ ] Use round data to inform purchase decisions
-
-* [ ] Determine where the track is (Custom map?)
-
-* [ ] Implement tower range
 
 * [ ] Take data as input
 
