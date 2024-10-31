@@ -32,33 +32,42 @@ def main():
 
         #set initial values
         attempt = attempt + 1
-        print(f"--------------- Attempt {attempt} ---------------")
+        print(f"\n--------------- Attempt {attempt} ---------------")
         round = starting_round
         first_run = True 
-        choice = 1
         spend_round = True
-
         
         if not first_attempt:
+            print('Saving data to csv')
             attempt_towers = pd.concat([attempt_towers, towers_df], ignore_index=True)
             attempt_towers.to_csv("data/tower_data.csv", index=False)
 
             attempt_rounds = pd.concat([attempt_rounds, rounds_df], ignore_index=True)
             attempt_rounds.to_csv("data/attempt_data.csv", index=False)
         first_attempt = False
-            
 
         towers_df = pd.DataFrame()
         rounds_df = pd.DataFrame()
         last_money = 0
         last_hp = 0
+        place = True
 
         in_game = True
 
         while in_game:
 
-
-            state = bb.round_state()
+            state_error = 0 #temporary fix until solution found
+            while True:
+                if state_error == 5:
+                    print('Could not solve error.')
+                    break
+                try:
+                    state = bb.round_state()
+                    break
+                except AttributeError:
+                    state_error = state_error+1
+                    print(f"Failed to get state, trying again... ({state_error}/5)")
+                    continue
 
             if state != 0:
 
@@ -77,7 +86,7 @@ def main():
 
                 #check round stats
                 round = round + 1
-                print(f"-------Round {round}-------")
+                print(f"\n-------Round {round}-------")
                 try:
                     hp, money = bb.get_game_info()
                     print(f"Lives: {hp} Money: {money}")
@@ -88,24 +97,23 @@ def main():
 
 
                 #place towers
-                if not first_run: 
+                if not first_run:
                     spend_round = bb.spend(money,hp,last_money,last_hp)
-                    ########## Make better way to determine if buy/upgrade ##########
-                    choice = random.randint(1, 2) 
+                    place = bb.buy_up_ratio(towers_df)
 
 
                 if spend_round:
-                    if  choice == 1: #make a better way later
+                    if  place:
                         tempdf = bb.place_tower(base_costs,placement_coords,towers_df,money,attempt,round)
                         if tempdf is not None:
                             towers_df = tempdf
-                        print(towers_df)
+                        #print(towers_df)
 
                     else:
                         tempdf = bb.upgrade_tower(towers_df,upgrade_costs,money)
                         if tempdf is not None:
                             towers_df = tempdf
-                        print(towers_df)
+                        #print(towers_df)
 
 
 

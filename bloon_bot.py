@@ -367,3 +367,20 @@ def upgrade_tower(towers_df, upgrade_costs, money):
           f"{towers_df.at[original_index, 'bottom_path']})")
     
     return towers_df
+
+
+
+def buy_up_ratio(data): #True is buy, false is upgrade
+    n_towers = len(data)
+    base_buy = 80
+
+    tower_factor = n_towers * 5
+    new_buy = base_buy - tower_factor
+    
+    if n_towers > 12:
+        new_buy = 20
+
+    if random.randint(0,100) <= new_buy:
+        return True
+    else:
+        return False
