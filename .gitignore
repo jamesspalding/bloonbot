@@ -6,3 +6,5 @@ tess_path.txt
 __pycache__
 data.json
 data.csv
+testing.ipynb
+data/*
