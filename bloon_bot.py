@@ -80,25 +80,54 @@ def get_game_info():
     return(img_to_num('temp1.png'))
 
 
+#given button reference, return presence and location
+def find_button(screen, button_path):
+    button = cv2.imread(button_path)
+    result = cv2.matchTemplate(screen, button, cv2.TM_CCOEFF_NORMED)
+    location = np.where(result >= .8)
+    is_present = len(location[0]) > 0
+    return is_present, location
+
+
 #recognize round end
 def round_state():
-    screen = screen_cap()
+    ###paused
+    while True:
+        screen = screen_cap()
+        paused,_ = find_button(screen, 'assets/paused_button.png')
+
+        # paused_button = cv2.imread('assets/paused_button.png')
+        # result = cv2.matchTemplate(screen, paused_button, cv2.TM_CCOEFF_NORMED)
+        # location = np.where(result >= .8)
+        # paused = len(location[0]) > 0
+
+        if paused:
+            print('Game paused. Unpausing...')
+            pydirectinput.press('esc')
+            time.sleep(.5)
+        else:
+            break
 
     ###game over
-    restart_button = cv2.imread('assets/restart_button.png')
-    result = cv2.matchTemplate(screen, restart_button, cv2.TM_CCOEFF_NORMED)
-    location = np.where(result >= .8)
-    gameover = len(location[0]) > 0
+    gameover,location = find_button(screen, 'assets/restart_button.png')
+
+    # restart_button = cv2.imread('assets/restart_button.png')
+    # result = cv2.matchTemplate(screen, restart_button, cv2.TM_CCOEFF_NORMED)
+    # location = np.where(result >= .8)
+    # gameover = len(location[0]) > 0
     
     if gameover:
         #click restart
         pyautogui.moveTo(location[0][0], location[1][0])
+        # pyautogui.moveTo(location[0][0], location[1][0])
         pydirectinput.click()
-
         time.sleep(.25)
-        restart_text = cv2.imread('assets/restart_text.png')
-        result = cv2.matchTemplate(screen_cap(), restart_text, cv2.TM_CCOEFF_NORMED)
-        location = np.where(result >= .8)
+
+        screen_cap()
+        _,location = find_button(screen_cap(),'assets/restart_text.png')
+        # restart_text = cv2.imread('assets/restart_text.png')
+        # result = cv2.matchTemplate(screen_cap(), restart_text, cv2.TM_CCOEFF_NORMED)
+        # location = np.where(result >= .8)
 
         #confirm restart
         pyautogui.moveTo(location[1][0], location[0][0])
@@ -107,10 +136,12 @@ def round_state():
         return(2)
 
     ###freeplay
-    win_button = cv2.imread('assets/win_button.png')
-    result = cv2.matchTemplate(screen, win_button, cv2.TM_CCOEFF_NORMED)
-    location = np.where(result >=.8)
-    freeplay = len(location[0]) > 0
+    freeplay,location = find_button(screen,'assets/win_button.png')
+
+    # win_button = cv2.imread('assets/win_button.png')
+    # result = cv2.matchTemplate(screen, win_button, cv2.TM_CCOEFF_NORMED)
+    # location = np.where(result >=.8)
+    # freeplay = len(location[0]) > 0
 
     if freeplay:
         pyautogui.moveTo(location[1][0], location[0][0])
@@ -130,10 +161,12 @@ def round_state():
         return(3)
 
     ###new round
-    play_button = cv2.imread('assets/play_button.png')
-    result = cv2.matchTemplate(screen, play_button, cv2.TM_CCOEFF_NORMED)
-    location = np.where(result >= .8)
-    newround = len(location[0]) > 0
+    newround,_ = find_button(screen,'assets/play_button.png')
+
+    # play_button = cv2.imread('assets/play_button.png')
+    # result = cv2.matchTemplate(screen, play_button, cv2.TM_CCOEFF_NORMED)
+    # location = np.where(result >= .8)
+    # newround = len(location[0]) > 0
 
     if newround:
         return(1)
@@ -293,12 +326,6 @@ def spend(money,lives,last_money,last_lives): #manually tweak these values to fi
 
 
 
-def stop_program(towers_df):
-    towers_df.to_csv('data.csv', index=False)
-    return(False)
-
-
-
 #upgrades tower and updates df CHANGES ALL TOWERS INSTEAD OF ONE
 def upgrade_tower(towers_df, upgrade_costs, money):
     i = 0
@@ -370,17 +397,19 @@ def upgrade_tower(towers_df, upgrade_costs, money):
 
 
 
-def buy_up_ratio(data): #True is buy, false is upgrade
+#starts at 80% chance to place, goes down 5% per tower placed, capping at 20%
+def buy_action(data): 
     n_towers = len(data)
-    base_buy = 80
+    if n_towers <= 12:
+        base_place = 80
 
-    tower_factor = n_towers * 5
-    new_buy = base_buy - tower_factor
+        tower_factor = n_towers * 5
+        new_buy = base_place - tower_factor
     
-    if n_towers > 12:
+    else:
         new_buy = 20
 
     if random.randint(0,100) <= new_buy:
-        return True
+        return 'place'
     else:
-        return False
+        return 'upgrade'
