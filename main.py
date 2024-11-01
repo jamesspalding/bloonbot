@@ -14,7 +14,7 @@ def main():
 
     #----------- initial setup -----------#
     pyautogui.hotkey('alt', 'tab')
-    placement_coords = bb.define_grid()
+    placement_coords = bb.initialize_placements()
     base_costs, upgrade_costs = bb.get_costs('easy') #Change difficulty as needed
     attempt_towers = pd.DataFrame()
     attempt_rounds = pd.DataFrame()
@@ -31,7 +31,7 @@ def main():
         attempt = attempt + 1
         print(f"\n--------------- Attempt {attempt} ---------------")
         round = starting_round
-        first_run = True 
+        first_round = True 
         spend_round = True
         
         if not first_attempt:
@@ -48,6 +48,7 @@ def main():
         last_money = 0
         last_hp = 0
         spend_action = 'place'
+        num_actions = 1
 
         in_game = True
 
@@ -90,10 +91,9 @@ def main():
                 #----------- get round stats -----------#
                 round = round + 1
                 print(f"\n-------Round {round}-------")
-                for tess_attempt in range(1,6):
+                for tess_attempt in range(1,7):
                     if tess_attempt == 5:
                         print('Could not obtain hp/money: starting round')
-                        pydirectinput.press('space')
                         continue
 
                     try:
@@ -107,28 +107,31 @@ def main():
 
 
                 #---------- round action -----------#
-                if not first_run:
-                    spend_round = bb.spend(money,hp,last_money,last_hp)
-                    spend_action = bb.buy_action(towers_df)
+                num_actions = 1+(money // 2500) #tweak this
 
+                for i in range(num_actions):
 
-                if spend_round:
-                    if  spend_action == 'place':
-                        tempdf = bb.place_tower(base_costs,placement_coords,towers_df,money,attempt,round)
-                        if tempdf is not None:
-                            towers_df = tempdf
+                    if not first_round:
+                        spend_round = bb.spend(money,hp,last_money,last_hp)
+                        spend_action = bb.buy_action(towers_df)
 
-                    if  spend_action == 'upgrade':
-                        tempdf = bb.upgrade_tower(towers_df,upgrade_costs,money)
-                        if tempdf is not None:
-                            towers_df = tempdf
+                    if spend_round:
+                        if  spend_action == 'place':
+                            tempdf = bb.place_tower(base_costs,placement_coords,towers_df,money,attempt,round)
+                            if tempdf is not None:
+                                towers_df = tempdf
+
+                        if  spend_action == 'upgrade':
+                            tempdf = bb.upgrade_tower(towers_df,upgrade_costs,money)
+                            if tempdf is not None:
+                                towers_df = tempdf
 
 
 
                 #----------- start round -----------#
-                if first_run:
+                if first_round:
                     pydirectinput.press('space') #enable ff
-                    first_run = False
+                    first_round = False
 
                 last_hp = hp
                 last_money = money
