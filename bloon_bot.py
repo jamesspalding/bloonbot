@@ -95,13 +95,23 @@ def round_state():
     while True:
         screen = screen_cap()
         paused,_ = find_button(screen, 'assets/paused_button.png')
+        shop,_ = find_button(screen,'assets/shop_button.png')
 
         if paused:
             print('Game paused. Unpausing...')
             pydirectinput.press('esc')
             time.sleep(.5)
+
+        if shop:
+            print('Shop opened. Closing...')
+            pydirectinput.press('esc')
+            time.sleep(.5)
+            pydirectinput.press('esc')
+            time.sleep(.5)
+
         else:
             break
+
 
     ###game over
     gameover,location = find_button(screen, 'assets/restart_button.png')
