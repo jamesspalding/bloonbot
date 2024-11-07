@@ -327,7 +327,7 @@ def spend(money,lives,last_money,last_lives): #manually tweak these values to fi
     
     if money > last_money:
         round_money = last_money - money
-        money_probs = round_money/30
+        money_probs = round_money/10
 
     totprobs = lives_probs + money_probs + random_chance
     selection = random.randint(1, 100)
@@ -418,10 +418,10 @@ def upgrade_tower(towers_df, upgrade_costs, money):
 #starts at 80% chance to place, goes down 5% per tower placed, capping at 20%
 def buy_action(data): 
     n_towers = len(data)
-    if n_towers <= 12:
+    if n_towers <= 6:
         base_place = 80
 
-        tower_factor = n_towers * 5
+        tower_factor = n_towers * 10
         new_buy = base_place - tower_factor
     
     else:
