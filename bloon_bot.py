@@ -281,6 +281,8 @@ def place_tower(base_costs,placements,towers_df,money,attempt,round):
         #try to place tower
         pyautogui.moveTo(x, y)
         pydirectinput.press(hotkey)
+        pydirectinput.press('tab') #autonudge
+        x,y = pyautogui.position() #get new position
         pydirectinput.click()
     
 
