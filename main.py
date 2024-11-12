@@ -17,6 +17,7 @@ def main():
     placement_coords = bb.initialize_placements()
     base_costs, upgrade_costs = bb.get_costs('easy') #Change difficulty as needed
     attempt_towers = pd.DataFrame()
+    attempt_data = pd.DataFrame()
     attempt_rounds = pd.DataFrame()
     starting_round = bb.get_round() #only needs to run once
     starting_round = starting_round - 1
@@ -39,14 +40,17 @@ def main():
             attempt_towers = pd.concat([attempt_towers, towers_df], ignore_index=True)
             attempt_towers.to_csv("data/tower_data.csv", index=False)
 
-            attempt_rounds = pd.concat([attempt_rounds, rounds_df], ignore_index=True)
-            attempt_rounds.to_csv("data/attempt_data.csv", index=False)
+            attempt_data = pd.concat([attempt_data, attempt_df], ignore_index=True)
+            attempt_data.to_csv("data/attempt_data.csv", index=False)
+
+            attempt_rounds.to_csv("data/rounds_data.csv", index=False)
+
         first_attempt = False
 
         towers_df = pd.DataFrame()
-        rounds_df = pd.DataFrame()
+        attempt_df = pd.DataFrame()
         last_money = 0
-        last_hp = 0
+        last_hp = 200 #adjust for dif
         spend_action = 'place'
         num_actions = 1
 
@@ -77,7 +81,7 @@ def main():
                 if state == 2:
                     print('Game Over')
                     print('Restarting...')
-                    rounds_df = pd.DataFrame({'attempt':[attempt],
+                    attempt_df = pd.DataFrame({'attempt':[attempt],
                                               'fin_round':round,
                                               'fin_lives':last_hp,
                                               'fin_cash':last_money})
@@ -125,6 +129,24 @@ def main():
                             tempdf = bb.upgrade_tower(towers_df,upgrade_costs,money)
                             if tempdf is not None:
                                 towers_df = tempdf
+                    
+                        #save info
+                        rounds_df = pd.DataFrame({'attempt':[attempt],
+                                                  'round':round,
+                                                  'action':spend_action,
+                                                  'lives':hp,
+                                                  'lives_lost':last_hp - hp,
+                                                  'cash':money})
+                        attempt_rounds = pd.concat([attempt_rounds,rounds_df], ignore_index=True)
+
+                    else:
+                        rounds_df = pd.DataFrame({'attempt':[attempt],
+                                                  'round':round,
+                                                  'action':'none',
+                                                  'lives':hp,
+                                                  'lives_lost':last_hp - hp,
+                                                  'cash':money})
+                        attempt_rounds = pd.concat([attempt_rounds,rounds_df], ignore_index=True)
 
 
 
