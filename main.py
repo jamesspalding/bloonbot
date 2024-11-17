@@ -7,21 +7,21 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import random
 import bloon_bot as bb
-import bloon_algorithm as ba
+import placement_selection as ps
 
 
-def main():
+def main(read_data = False):
 
     #----------- initial setup -----------#
     pyautogui.hotkey('alt', 'tab')
     placement_coords = bb.initialize_placements()
     base_costs, upgrade_costs = bb.get_costs('easy') #Change difficulty as needed
-    attempt_towers = pd.DataFrame()
-    attempt_data = pd.DataFrame()
-    attempt_rounds = pd.DataFrame()
+    attempt_towers = pd.read_csv('data/tower_data.csv')
+    attempt_data = pd.read_csv('data/attempt_data.csv')
+    attempt_rounds = pd.read_csv('data/rounds_data.csv')
     starting_round = bb.get_round() #only needs to run once
     starting_round = starting_round - 1
-    attempt = 0
+    attempt = list(attempt_data['attempt'])[-1] #gets most recent attempt
     first_attempt = True
     run = True
 
@@ -31,21 +31,30 @@ def main():
         #----------- per-attempt setup -----------#
         attempt = attempt + 1
         print(f"\n--------------- Attempt {attempt} ---------------")
+
         round = starting_round
         first_round = True 
         spend_round = True
         
         if not first_attempt:
+            #save data
             print('Saving data to csv')
             attempt_towers = pd.concat([attempt_towers, towers_df], ignore_index=True)
             attempt_towers.to_csv("data/tower_data.csv", index=False)
-
             attempt_data = pd.concat([attempt_data, attempt_df], ignore_index=True)
             attempt_data.to_csv("data/attempt_data.csv", index=False)
-
             attempt_rounds.to_csv("data/rounds_data.csv", index=False)
 
+            #load most recent data
+            attempt_towers = pd.read_csv('data/tower_data.csv')
+            attempt_data = pd.read_csv('data/attempt_data.csv')
+            attempt_rounds = pd.read_csv('data/rounds_data.csv')
+
         first_attempt = False
+        
+        if read_data:
+            placement_pool = ps.get_placement_pool() #updates top runs after each attempt
+            print(f"Top Attempts: {set(placement_pool['attempt'])}")
 
         towers_df = pd.DataFrame()
         attempt_df = pd.DataFrame()
@@ -53,7 +62,6 @@ def main():
         last_hp = 200 #adjust for dif
         spend_action = 'place'
         num_actions = 1
-
         in_game = True
 
         while in_game:
@@ -70,7 +78,7 @@ def main():
                     break
                 except AttributeError:
                     state_error = state_error+1
-                    print(f"Failed to get state, trying again... ({state_error}/5)")
+                    print("Failed to get state, trying again...")
                     continue
             
 
@@ -96,8 +104,8 @@ def main():
                 round = round + 1
                 print(f"\n-------Round {round}-------")
                 for tess_attempt in range(1,7):
-                    if tess_attempt == 5:
-                        print('Could not obtain hp/money: starting round')
+                    if tess_attempt == 4:
+                        print('Could not obtain hp/money: starting round.')
                         continue
 
                     try:
@@ -105,7 +113,7 @@ def main():
                         print(f"Lives: {hp} Money: {money}")
                         break
                     except:
-                        print(f"Tesseract error. Retrying ({tess_attempt}/5)")
+                        print("Tesseract error. Retrying...")
                         continue
 
 
@@ -121,7 +129,19 @@ def main():
 
                     if spend_round:
                         if  spend_action == 'place':
-                            tempdf = bb.place_tower(base_costs,placement_coords,towers_df,money,attempt,round)
+                            #determine placement strategy
+                            if read_data:
+                                #10% mutation chance to possibly discover new techniques
+                                mutation = random.random() < 0.1  
+                                if mutation:
+                                    print('Mutation!')
+                                    tempdf = bb.place_tower(base_costs,placement_coords,towers_df,money,attempt,round)
+                                else:
+                                    tempdf = ps.pool_placement(placement_pool,towers_df,money,attempt,round)
+
+                            if not read_data:
+                                tempdf = bb.place_tower(base_costs,placement_coords,towers_df,money,attempt,round)
+
                             if tempdf is not None:
                                 towers_df = tempdf
 
@@ -167,4 +187,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(read_data=True)

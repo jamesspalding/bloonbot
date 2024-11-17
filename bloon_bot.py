@@ -285,8 +285,6 @@ def place_tower(base_costs,placements,towers_df,money,attempt,round):
         x,y = pyautogui.position() #get new position
         pydirectinput.click()
     
-
-        ########## USE COLOR RECOGNITION INSTEAD!! #####################################################################################################################################################
         #check if money went down, skip if tesseract can't read money
         try:
             _, new_money = get_game_info()
@@ -433,3 +431,6 @@ def buy_action(data):
         return 'place'
     else:
         return 'upgrade'
+    
+
+
