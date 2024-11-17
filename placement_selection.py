@@ -1,15 +1,22 @@
 import pandas as pd
 import pyautogui
 import pydirectinput
+import random
 
 def get_placement_pool():
     tower_costs = pd.read_csv('assets/base_costs2.csv')
     towers = pd.read_csv('data/tower_data.csv')
     attempts = pd.read_csv('data/attempt_data.csv')
 
-    #get top 20 placements
-    top_attempts = attempts.sort_values('fin_round',ascending=False).reset_index(drop=True)
-    top_attempts = top_attempts.iloc[0:20] #select top 20 best attempts
+    #get top placements via tournament selection
+    top_attempts = pd.DataFrame()
+    for i in range(1,21):
+        tournament = attempts.sample(5)
+        attempts = attempts.drop(tournament.index)
+        winner = tournament[tournament['fin_round']==int(tournament['fin_round'].max())].sample(1)
+        top_attempts = pd.concat([top_attempts,winner], ignore_index=True)
+
+    top_attempts = top_attempts.reset_index(drop=True)
 
     #add to pool
     top_towers = towers[towers['attempt'].isin(top_attempts['attempt'])]
