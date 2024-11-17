@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import random
 import bloon_bot as bb
-import placement_selection as ps
+import bloon_brain as br
 
 
 def main(read_data = False):
@@ -33,6 +33,9 @@ def main(read_data = False):
         attempt = attempt + 1
         print(f"\n--------------- Attempt {attempt} ---------------")
 
+        if attempt % 20 == 0:
+            br.refit_model()
+
         round = starting_round
         first_round = True 
         spend_round = True
@@ -54,7 +57,7 @@ def main(read_data = False):
         first_attempt = False
         
         if read_data:
-            placement_pool = ps.get_placement_pool() #updates top runs after each attempt
+            placement_pool = br.get_placement_pool() #updates top runs after each attempt
             print(f"Top Attempts: {set(placement_pool['attempt'])}")
 
         towers_df = pd.DataFrame()
@@ -136,7 +139,7 @@ def main(read_data = False):
                 for i in range(num_actions):
 
                     if not first_round:
-                        spend_round = bb.spend(towers_df,attempt_rounds,bloon_data)
+                        spend_round = br.spend(towers_df,attempt_rounds,bloon_data)
                         spend_action = bb.buy_action(towers_df)
 
                     if spend_round:
@@ -150,7 +153,7 @@ def main(read_data = False):
                                     print('Mutation!')
                                     tempdf = bb.place_tower(base_costs,placement_coords,towers_df,money,attempt,round)
                                 else:
-                                    tempdf = ps.pool_placement(placement_pool,towers_df,money,attempt,round)
+                                    tempdf = br.pool_placement(placement_pool,towers_df,money,attempt,round)
 
                             if not read_data:
                                 tempdf = bb.place_tower(base_costs,placement_coords,towers_df,money,attempt,round)
