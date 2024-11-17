@@ -90,6 +90,23 @@ def find_button(screen, button_path):
     return is_present, location
 
 
+#check if ability is interactable
+def interactive_ability(towers_df):
+    for i in range(1,6):
+        screen = screen_cap()
+        ability,_ = find_button(screen,'assets/close_button.png')
+
+        if ability:
+            selected_tower = towers_df.sample(1)
+            pyautogui.moveTo(selected_tower['x'].iloc[0],selected_tower['x'].iloc[1])
+            pydirectinput.press('tab')
+            pydirectinput.click()
+
+        else:
+            return
+
+
+
 #recognize round end
 def round_state():
     ###paused
@@ -342,55 +359,6 @@ def place_tower(base_costs,placements,towers_df,money,attempt,round):
 #         print("Saving")
 
 #     return(result)
-
-
-def spend(towers_df,attempt_rounds,bloon_data):
-    with open('assets/round_pred_scale.pkl', 'rb') as f:
-        scaler = pkl.load(f)
-
-    with open('assets/round_predictions.pkl', 'rb') as f:
-        model = pkl.load(f)
-
-    #state lives lost in previous round, not current
-    attempt_rounds['lives_lost'] = attempt_rounds['lives_lost'].shift(-1)
-    attempt_rounds['lives_lost'] = attempt_rounds['lives_lost'].fillna(0)
-    attempt_rounds['previous_action'] = attempt_rounds['action'].shift(1)
-    attempt_rounds['previous_action'] = attempt_rounds['previous_action'].fillna('none')
-
-    #add tower cols
-    all_towers = ['super_monkey','ice_monkey','ninja_monkey','mortar_monkey',
-                  'alchemist','glue_gunner','boomerang_monkey','dart_monkey',
-                  'spike_factory','monkey_ace','sniper_monkey','wizard_monkey',
-                  'monkey_village','druid_monkey','engineer','tack_shooter','bomb_shooter']
-
-    for col in all_towers:
-        attempt_rounds[col] = 0
-
-    #current monkey placements
-    for _, row in towers_df.iterrows():
-        attempt = row['attempt']
-        round_placed = row['round_placed']
-        tower_type = row['type']
-        
-        mask = (attempt_rounds['attempt'] == attempt) & (attempt_rounds['round'] >= round_placed)
-        attempt_rounds.loc[mask, tower_type] += 1
-
-    #merge bloon data
-    round_pred = pd.merge(attempt_rounds,bloon_data, left_on='round', right_on='Round')
-
-    #prepare data
-    round_pred = round_pred.drop(['attempt','action','Round','round','lives','lives_lost'],axis=1)
-    round_pred = pd.get_dummies(round_pred)
-    round_pred = round_pred.astype(int)
-
-    #scale data
-    scaled_data = scaler.fit_transform(round_pred)
-
-    #predict if hp loss
-    probabilities = model.predict_proba(scaled_data)[:, 1]
-    prediction = (probabilities >= .35).astype(int) #tweak threshold here
-    return prediction[-1]
-
 
 
 #upgrades tower and updates df
