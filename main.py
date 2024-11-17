@@ -72,8 +72,9 @@ def main(read_data = False):
             state_error = 0
             while True:
 
-                for i in range(1,6): #use up to 5 abilities to save time
-                    pydirectinput.press(str(i))
+                if round > 40:
+                    for i in range(1,6): #use up to 5 abilities to save time, starting at round 41
+                        pydirectinput.press(str(i))
 
                 if state_error == 5:
                     print('Could not solve error.')
