@@ -16,6 +16,7 @@ def main(read_data = False):
     pyautogui.hotkey('alt', 'tab')
     placement_coords = bb.initialize_placements()
     base_costs, upgrade_costs = bb.get_costs('easy') #Change difficulty as needed
+    bloon_data = pd.read_csv('assets/bloon_rounds.csv')
     attempt_towers = pd.read_csv('data/tower_data.csv')
     attempt_data = pd.read_csv('data/attempt_data.csv')
     attempt_rounds = pd.read_csv('data/rounds_data.csv')
@@ -68,8 +69,12 @@ def main(read_data = False):
 
 
             #----------- error handling -----------#
-            state_error = 0 #temporary fix until solution found
+            state_error = 0
             while True:
+
+                for i in range(1,6): #use up to 5 abilities to save time
+                    pydirectinput.press(str(i))
+
                 if state_error == 5:
                     print('Could not solve error.')
                     break
@@ -120,14 +125,21 @@ def main(read_data = False):
 
                 #---------- round action -----------#
                 num_actions = 1+(money // 2500) #tweak this
+                rounds_df = pd.DataFrame({'attempt':[attempt],
+                                          'round':round,
+                                          'action':0,
+                                          'lives':hp,
+                                          'lives_lost':last_hp - hp,
+                                          'cash':money})
 
                 for i in range(num_actions):
 
                     if not first_round:
-                        spend_round = bb.spend(money,hp,last_money,last_hp)
+                        spend_round = bb.spend(towers_df,attempt_rounds,bloon_data)
                         spend_action = bb.buy_action(towers_df)
 
                     if spend_round:
+                        print('Spending')
                         if  spend_action == 'place':
                             #determine placement strategy
                             if read_data:
@@ -160,6 +172,7 @@ def main(read_data = False):
                         attempt_rounds = pd.concat([attempt_rounds,rounds_df], ignore_index=True)
 
                     else:
+                        print('Saving')
                         rounds_df = pd.DataFrame({'attempt':[attempt],
                                                   'round':round,
                                                   'action':'none',

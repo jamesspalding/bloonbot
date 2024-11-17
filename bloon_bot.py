@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import random
+import pickle as pkl
 
 #load tesseract
 with open("assets/tess_path.txt") as my_file:
@@ -315,36 +316,84 @@ def place_tower(base_costs,placements,towers_df,money,attempt,round):
 
 
 #determine to save or spend for round
-def spend(money,lives,last_money,last_lives): #manually tweak these values to find best performance
-    result = False
-    lives_probs = 0
-    money_probs = 0
-    random_chance = 20
+# def spend(money,lives,last_money,last_lives): #manually tweak these values to find best performance
+#     result = False
+#     lives_probs = 0
+#     money_probs = 0
+#     random_chance = 20
 
-    if lives != last_lives:
-        lives_lost = last_lives - lives
-        lives_probs = 15 * lives_lost
+#     if lives != last_lives:
+#         lives_lost = last_lives - lives
+#         lives_probs = 15 * lives_lost
     
-    if money > last_money:
-        round_money = last_money - money
-        money_probs = round_money/10
+#     if money > last_money:
+#         round_money = last_money - money
+#         money_probs = round_money/10
 
-    totprobs = lives_probs + money_probs + random_chance
-    selection = random.randint(1, 100)
+#     totprobs = lives_probs + money_probs + random_chance
+#     selection = random.randint(1, 100)
 
-    if selection <= totprobs:
-        result = True
+#     if selection <= totprobs:
+#         result = True
 
-    if result:
-        print("Spending")
-    else:
-        print("Saving")
+#     if result:
+#         print("Spending")
+#     else:
+#         print("Saving")
 
-    return(result)
+#     return(result)
+
+
+def spend(towers_df,attempt_rounds,bloon_data):
+    with open('assets/round_pred_scale.pkl', 'rb') as f:
+        scaler = pkl.load(f)
+
+    with open('assets/round_predictions.pkl', 'rb') as f:
+        model = pkl.load(f)
+
+    #state lives lost in previous round, not current
+    attempt_rounds['lives_lost'] = attempt_rounds['lives_lost'].shift(-1)
+    attempt_rounds['lives_lost'] = attempt_rounds['lives_lost'].fillna(0)
+    attempt_rounds['previous_action'] = attempt_rounds['action'].shift(1)
+    attempt_rounds['previous_action'] = attempt_rounds['previous_action'].fillna('none')
+
+    #add tower cols
+    all_towers = ['super_monkey','ice_monkey','ninja_monkey','mortar_monkey',
+                  'alchemist','glue_gunner','boomerang_monkey','dart_monkey',
+                  'spike_factory','monkey_ace','sniper_monkey','wizard_monkey',
+                  'monkey_village','druid_monkey','engineer','tack_shooter','bomb_shooter']
+
+    for col in all_towers:
+        attempt_rounds[col] = 0
+
+    #current monkey placements
+    for _, row in towers_df.iterrows():
+        attempt = row['attempt']
+        round_placed = row['round_placed']
+        tower_type = row['type']
+        
+        mask = (attempt_rounds['attempt'] == attempt) & (attempt_rounds['round'] >= round_placed)
+        attempt_rounds.loc[mask, tower_type] += 1
+
+    #merge bloon data
+    round_pred = pd.merge(attempt_rounds,bloon_data, left_on='round', right_on='Round')
+
+    #prepare data
+    round_pred = round_pred.drop(['attempt','action','Round','round','lives','lives_lost'],axis=1)
+    round_pred = pd.get_dummies(round_pred)
+    round_pred = round_pred.astype(int)
+
+    #scale data
+    scaled_data = scaler.fit_transform(round_pred)
+
+    #predict if hp loss
+    probabilities = model.predict_proba(scaled_data)[:, 1]
+    prediction = (probabilities >= .35).astype(int) #tweak threshold here
+    return prediction[-1]
 
 
 
-#upgrades tower and updates df CHANGES ALL TOWERS INSTEAD OF ONE
+#upgrades tower and updates df
 def upgrade_tower(towers_df, upgrade_costs, money):
     i = 0
     locked_path = 'none'
@@ -418,14 +467,14 @@ def upgrade_tower(towers_df, upgrade_costs, money):
 #starts at 80% chance to place, goes down 5% per tower placed, capping at 20%
 def buy_action(data): 
     n_towers = len(data)
-    if n_towers <= 6:
+    if n_towers <= 7:
         base_place = 80
 
         tower_factor = n_towers * 10
         new_buy = base_place - tower_factor
     
     else:
-        new_buy = 20
+        new_buy = 10
 
     if random.randint(0,100) <= new_buy:
         return 'place'
