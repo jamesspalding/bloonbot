@@ -20,8 +20,6 @@ def main(read_data = False):
     attempt_towers = pd.read_csv('data/tower_data.csv')
     attempt_data = pd.read_csv('data/attempt_data.csv')
     attempt_rounds = pd.read_csv('data/rounds_data.csv')
-    starting_round = bb.get_round() #only needs to run once
-    starting_round = starting_round - 1
     attempt = list(attempt_data['attempt'])[-1] #gets most recent attempt
     first_attempt = True
     run = True
@@ -36,7 +34,7 @@ def main(read_data = False):
         if attempt % 20 == 0:
             br.refit_model()
 
-        round = starting_round
+        round = bb.get_round()
         first_round = True 
         spend_round = True
         
@@ -110,22 +108,8 @@ def main(read_data = False):
 
 
                 #----------- get round stats -----------#
-                round = round + 1
+                round,money,hp = bb.get_round_info()
                 print(f"\n-------Round {round}-------")
-                for tess_attempt in range(1,7):
-                    if tess_attempt == 4:
-                        print('Could not obtain hp/money: starting round.')
-                        continue
-
-                    try:
-                        hp, money = bb.get_game_info()
-                        print(f"Lives: {hp} Money: {money}")
-                        break
-                    except:
-                        print("Tesseract error. Retrying...")
-                        continue
-
-
 
                 #---------- round action -----------#
                 num_actions = 1+(money // 2500) #tweak this
@@ -139,7 +123,7 @@ def main(read_data = False):
                 for i in range(num_actions):
 
                     if not first_round:
-                        spend_round = br.spend(towers_df,attempt_rounds,bloon_data)
+                        spend_round = br.spend(towers_df,attempt_rounds,bloon_data,thresh=0)
                         spend_action = bb.buy_action(towers_df)
 
                     if spend_round:
@@ -184,6 +168,8 @@ def main(read_data = False):
                                                   'lives_lost':last_hp - hp,
                                                   'cash':money})
                         attempt_rounds = pd.concat([attempt_rounds,rounds_df], ignore_index=True)
+                        if i > 10:
+                            break
 
 
 
@@ -195,12 +181,6 @@ def main(read_data = False):
                 last_hp = hp
                 last_money = money
                 pydirectinput.press('space')
-
-
-
-
-
-
 
 
 if __name__ == '__main__':

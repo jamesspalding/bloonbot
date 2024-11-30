@@ -11,10 +11,26 @@ import pandas as pd
 import random
 import pickle as pkl
 
+
 #load tesseract
 with open("assets/tess_path.txt") as my_file:
     tess_path = my_file.read()
 pytesseract.pytesseract.tesseract_cmd = tess_path
+
+
+#load data obtained from c#
+def get_round_info():
+    with open('game_data.txt', 'r') as file:
+        content = file.read()
+
+    round_dat = content.split('\n')
+    round_dat = [int(x) for x in round_dat[:-1]]
+
+    round = round_dat[0]
+    cash = round_dat[1]
+    hp = round_dat[2]
+
+    return round, cash, hp
 
 
 #extract text from image
@@ -35,50 +51,55 @@ def screen_cap():
 
 #get round
 def get_round():
-    screen_cap()
-    im = Image.open('temp.png')
-    width, height = im.size
+    # screen_cap()
+    # im = Image.open('temp.png')
+    # width, height = im.size
 
-    left = .745 * width
-    right = .814 * width
-    top = .055 * height
-    bottom = .1 * height
-    im2 = im.crop((left, top, right, bottom))
-    im2.save('temp2.png')
+    # left = .745 * width
+    # right = .814 * width
+    # top = .055 * height
+    # bottom = .1 * height
+    # im2 = im.crop((left, top, right, bottom))
+    # im2.save('temp2.png')
 
-    #obscure image
-    image = Image.open("temp2.png").convert("L")
-    image = image.point(lambda p: 255 if p > 250 else 0) #extract ONLY numbers
-    image.save("temp2.png")
-    round = img_to_num('temp2.png')
-    round = round[0]
+    # #obscure image
+    # image = Image.open("temp2.png").convert("L")
+    # image = image.point(lambda p: 255 if p > 250 else 0) #extract ONLY numbers
+    # image.save("temp2.png")
+    # round = img_to_num('temp2.png')
+    # round = round[0]
 
-    return(round)
+    round,_,_ = get_round_info()
+
+    return round
 
 
 #get hp, money
 def get_game_info():
-    screen_cap()
-    im = Image.open('temp.png')
-    width, height = im.size
+    # screen_cap()
+    # im = Image.open('temp.png')
+    # width, height = im.size
 
-    ##### HP + Money #####
-    left = .07 * width
-    right = .30 * width
-    top = .048 * height
-    bottom = .1 * height
-    im1 = im.crop((left, top, right, bottom))
-    im1.save('temp1.png')
+    # ##### HP + Money #####
+    # left = .07 * width
+    # right = .30 * width
+    # top = .048 * height
+    # bottom = .1 * height
+    # im1 = im.crop((left, top, right, bottom))
+    # im1.save('temp1.png')
 
-    #obscure image
-    image = Image.open("temp1.png").convert("L")
-    draw = ImageDraw.Draw(image)
-    box_coordinates = (90, 0, 231, 70)
-    draw.rectangle(box_coordinates, fill="black")
-    image = image.point(lambda p: 255 if p > 200 else 0)
-    image.save("temp1.png")
+    # #obscure image
+    # image = Image.open("temp1.png").convert("L")
+    # draw = ImageDraw.Draw(image)
+    # box_coordinates = (90, 0, 231, 70)
+    # draw.rectangle(box_coordinates, fill="black")
+    # image = image.point(lambda p: 255 if p > 200 else 0)
+    # image.save("temp1.png")
 
-    return(img_to_num('temp1.png'))
+    # return(img_to_num('temp1.png'))
+    _,money,hp = get_round_info()
+    
+    return hp, money
 
 
 #given button reference, return presence and location
@@ -88,23 +109,6 @@ def find_button(screen, button_path):
     location = np.where(result >= .8)
     is_present = len(location[0]) > 0
     return is_present, location
-
-
-#check if ability is interactable
-def interactive_ability(towers_df):
-    for i in range(1,6):
-        screen = screen_cap()
-        ability,_ = find_button(screen,'assets/close_button.png')
-
-        if ability:
-            selected_tower = towers_df.sample(1)
-            pyautogui.moveTo(selected_tower['x'].iloc[0],selected_tower['x'].iloc[1])
-            pydirectinput.press('tab')
-            pydirectinput.click()
-
-        else:
-            return
-
 
 
 #recognize round end
@@ -138,15 +142,12 @@ def round_state():
         #click restart
         pyautogui.moveTo(location[0][0], location[1][0])
         pydirectinput.click()
-        time.sleep(.25)
-
-        screen_cap()
-        _,location = find_button(screen_cap(),'assets/restart_text.png')
+        time.sleep(.5)
 
         #confirm restart
-        pyautogui.moveTo(location[1][0], location[0][0])
+        pyautogui.moveTo(1130,750) #for 1080p
         pydirectinput.click()     
-        time.sleep(1) #letting game reset before running again   
+        time.sleep(.5)
         return(2)
 
     ###freeplay
@@ -303,22 +304,12 @@ def place_tower(base_costs,placements,towers_df,money,attempt,round):
         x,y = pyautogui.position() #get new position
         pydirectinput.click()
     
-        #check if money went down, skip if tesseract can't read money
-        try:
-            _, new_money = get_game_info()
+        #check if money went down
+        _,new_money,_ = get_round_info()
 
-            if(new_money != money):
-                print(f"{name} placed at ({x},{y})")
-                break
-
-            if(iteration > 9): #10 tries to find valid placement
-                print('No location found.')
-                pydirectinput.press('esc') #deselects tower
-                return
-
-        except ValueError:
-            print('Tesseract error, skipping...')
-            return
+        if(new_money != money):
+            print(f"{name} placed at ({x},{y})")
+            break
 
 
     placement_list = [attempt, round, x, y, name, 0, 0, 0] #coords, type, upgrades
@@ -374,13 +365,20 @@ def upgrade_tower(towers_df, upgrade_costs, money):
         upgraded_paths = int(sum([(selected_tower['top_path'].iloc[0] != 0),
                                    (selected_tower['middle_path'].iloc[0] != 0),
                                    (selected_tower['bottom_path'].iloc[0] != 0)]))
+        
         if upgraded_paths == 2:
             locked_path = selected_tower.columns[selected_tower.eq(0).any()][0]
             print(f"{locked_path} is locked")
 
+            #check for tier 3
+            locked_path2 = 999
+            if (selected_tower['top_path'].iloc[0] > 2) | (selected_tower['middle_path'].iloc[0] > 2) | (selected_tower['bottom_path'].iloc[0] > 2):
+                locked_path2 = selected_tower.columns[selected_tower[['top_path','middle_path','bottom_path']].max(axis=1)][0]
+
             available_upgrades = upgrade_costs[(upgrade_costs['tower'].isin(selected_tower['type'])) &
                                                (upgrade_costs['cost'] < money) &
-                                               (upgrade_costs['path'] != locked_path)]
+                                               (upgrade_costs['path'] != locked_path) &
+                                               (upgrade_costs['path'] != locked_path2)]
         else:
             available_upgrades = upgrade_costs[(upgrade_costs['tower'].isin(selected_tower['type'])) &
                                                (upgrade_costs['cost'] < money)]
@@ -448,6 +446,3 @@ def buy_action(data):
         return 'place'
     else:
         return 'upgrade'
-    
-
-

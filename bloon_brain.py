@@ -13,11 +13,12 @@ def get_placement_pool():
     tower_costs = pd.read_csv('assets/base_costs2.csv')
     towers = pd.read_csv('data/tower_data.csv')
     attempts = pd.read_csv('data/attempt_data.csv')
+    samp_size = int((len(attempts) // 1.5) // 20)
 
     #get top placements via tournament selection
     top_attempts = pd.DataFrame()
-    for i in range(1,21):
-        tournament = attempts.sample(5)
+    for i in range(1,21): #Update number of parents
+        tournament = attempts.sample(samp_size)
         attempts = attempts.drop(tournament.index)
         winner = tournament[tournament['fin_round']==int(tournament['fin_round'].max())].sample(1)
         top_attempts = pd.concat([top_attempts,winner], ignore_index=True)
@@ -70,7 +71,7 @@ def pool_placement(placement_pool,towers_df,money,attempt,round):
 
 
 #random forest for predicting lives lost
-def spend(towers_df,attempt_rounds,bloon_data):
+def spend(towers_df,attempt_rounds,bloon_data, thresh = .25):
     with open('assets/round_pred_scale.pkl', 'rb') as f:
         scaler = pkl.load(f)
 
@@ -114,7 +115,7 @@ def spend(towers_df,attempt_rounds,bloon_data):
 
     #predict if hp loss
     probabilities = model.predict_proba(scaled_data)[:, 1]
-    prediction = (probabilities >= .35).astype(int) #tweak threshold here
+    prediction = (probabilities >= thresh).astype(int) #tweak threshold here
     return prediction[-1]
 
 
@@ -192,25 +193,12 @@ def refit_model():
     )
 
     best_model.fit(X_train, y_train)
-    prior_model.fit(X_train, y_train)
+    
+    with open('assets/round_predictions.pkl', 'wb') as f:
+        pkl.dump(best_model, f)
 
-    new_pred = best_model.predict(X_test)
-    prior_pred = prior_model.predict(X_test)
-
-    new_kappa = cohen_kappa_score(y_train, new_pred)
-    prior_kappa = cohen_kappa_score(y_train, prior_pred)
-
-    if new_kappa > prior_kappa: #update model and scaler with new
-        print("New model better. Updating...")
-
-        with open('assets/round_predictions.pkl', 'wb') as f:
-            pkl.dump(best_model, f)
-
-        with open('assets/round_pred_scale.pkl', 'wb') as f:
-            pkl.dump(scaler, f)
-
-    else:
-        print('Old classifier better.')
+    with open('assets/round_pred_scale.pkl', 'wb') as f:
+        pkl.dump(scaler, f)
 
     return
 
