@@ -21,6 +21,7 @@ def main(read_data = False):
     attempt_data = pd.read_csv('data/attempt_data.csv')
     attempt_rounds = pd.read_csv('data/rounds_data.csv')
     attempt = list(attempt_data['attempt'])[-1] #gets most recent attempt
+    thresh = .5 #default value
     first_attempt = True
     run = True
 
@@ -32,7 +33,7 @@ def main(read_data = False):
         print(f"\n--------------- Attempt {attempt} ---------------")
 
         if attempt % 20 == 0:
-            br.refit_model()
+            thresh = br.refit_model()
 
         round = bb.get_round()
         first_round = True 
@@ -123,7 +124,7 @@ def main(read_data = False):
                 for i in range(num_actions):
 
                     if not first_round:
-                        spend_round = br.spend(towers_df,attempt_rounds,bloon_data,thresh=0)
+                        spend_round = br.spend(towers_df,attempt_rounds,bloon_data,thresh=thresh)
                         spend_action = bb.buy_action(towers_df)
 
                     if spend_round:
@@ -132,7 +133,7 @@ def main(read_data = False):
                             #determine placement strategy
                             if read_data:
                                 #10% mutation chance to possibly discover new techniques
-                                mutation = random.random() < 0.1  
+                                mutation = random.random() < 0.2  
                                 if mutation:
                                     print('Mutation!')
                                     tempdf = bb.place_tower(base_costs,placement_coords,towers_df,money,attempt,round)
@@ -150,7 +151,7 @@ def main(read_data = False):
                             if tempdf is not None:
                                 towers_df = tempdf
                     
-                        #save info
+                        #save infoa 
                         rounds_df = pd.DataFrame({'attempt':[attempt],
                                                   'round':round,
                                                   'action':spend_action,

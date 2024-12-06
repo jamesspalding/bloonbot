@@ -36,7 +36,7 @@ def start_server(host='127.0.0.1', port=764):
         s.bind((host, port))
         s.listen()
         print(f"Server listening on {host}:{port}")
-        
+
         while True:
             try:
                 conn, _ = s.accept()

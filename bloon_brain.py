@@ -1,11 +1,12 @@
 import pandas as pd
+import numpy as np
 import pyautogui
 import pydirectinput
 import random
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, cohen_kappa_score, make_scorer
+from sklearn.metrics import classification_report, cohen_kappa_score, make_scorer, f1_score
 import pickle as pkl
 
 ##### generate parents for attempt #####
@@ -123,9 +124,6 @@ def spend(towers_df,attempt_rounds,bloon_data, thresh = .25):
 def refit_model():
     print('Fitting new model...')
 
-    with open('assets/round_predictions.pkl', 'rb') as f:
-        prior_model = pkl.load(f)
-
     towers = pd.read_csv('data/tower_data.csv')
     rounds = pd.read_csv('data/rounds_data.csv')
     bloon_data = pd.read_csv('assets/bloon_rounds.csv')
@@ -160,8 +158,10 @@ def refit_model():
     round_pred = pd.get_dummies(round_pred)
     round_pred = round_pred.astype(int)
 
-    #split
-    X_train, X_test, y_train, y_test = train_test_split(round_pred, response, test_size=0.2)
+    round_pred = round_pred.tail(140)
+    response = response.tail(140)
+
+    X_train, X_test, y_train, y_test = train_test_split(round_pred, response, test_size=0.3)
 
     #scale
     scaler = StandardScaler()
@@ -181,7 +181,6 @@ def refit_model():
 
     rf = RandomForestClassifier()
 
-    #takes ~3 min
     best_model = RandomizedSearchCV(
         estimator=rf, 
         param_distributions=param_dist, 
@@ -193,13 +192,25 @@ def refit_model():
     )
 
     best_model.fit(X_train, y_train)
-    
+
+    best_kappa = 0
+    best_thresh = 0
+    for t in np.arange(0, 1.05, 0.05):
+        probs = best_model.predict_proba(X_test)[:,1]
+        preds = probs > t
+        preds = preds.astype(int)
+        kappa = cohen_kappa_score(y_test,preds)
+
+        if kappa > best_kappa:
+            best_kappa = kappa
+            best_thresh = t
+
     with open('assets/round_predictions.pkl', 'wb') as f:
         pkl.dump(best_model, f)
 
     with open('assets/round_pred_scale.pkl', 'wb') as f:
         pkl.dump(scaler, f)
 
-    return
+    return best_thresh
 
 

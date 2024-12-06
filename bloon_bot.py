@@ -285,32 +285,20 @@ def place_tower(base_costs,placements,towers_df,money,attempt,round):
                             (placements['label'] == 'medium')|
                             (placements['label'] == 'long')]
 
+    # select space and drop from coords
+    space = coords.sample(n=1)
+    placements = placements.drop(space.index).reset_index(drop=True) #drop space from pool after selected
+    space = space.reset_index(drop=True)
+    x=int(space['x'][0])
+    y=int(space['y'][0])
 
-    iteration = 0
-    while True: #loops until valid placement found
-        iteration = iteration + 1
-
-        # select space and drop from coords
-        space = coords.sample(n=1)
-        placements = placements.drop(space.index).reset_index(drop=True) #drop space from pool after selected
-        space = space.reset_index(drop=True)
-        x=int(space['x'][0])
-        y=int(space['y'][0])
-
-        #try to place tower
-        pyautogui.moveTo(x, y)
-        pydirectinput.press(hotkey)
-        pydirectinput.press('tab') #autonudge
-        x,y = pyautogui.position() #get new position
-        pydirectinput.click()
-    
-        #check if money went down
-        _,new_money,_ = get_round_info()
-
-        if(new_money != money):
-            print(f"{name} placed at ({x},{y})")
-            break
-
+    #try to place tower
+    pyautogui.moveTo(x, y)
+    pydirectinput.press(hotkey)
+    pydirectinput.press('tab') #autonudge
+    x,y = pyautogui.position() #get new position
+    pydirectinput.click()
+    print(f"{name} placed at ({x},{y})")
 
     placement_list = [attempt, round, x, y, name, 0, 0, 0] #coords, type, upgrades
     df = pd.DataFrame([placement_list], columns=["attempt", "round_placed", "x", "y", "type", "top_path", "middle_path", "bottom_path"])
