@@ -1,36 +1,9 @@
 # Bloonbot
 
+Before bot can run, the following mods must be installed via [BTD6 Mod Manager](https://github.com/TDToolbox/BTD6-Mod-Manager):
 
-* [x] Save game stats and tower stats for each attempt
-      
-* [x] Have bot play full game without bugs
+* [BloonBot](https://github.com/jamesspalding/bloonbot/blob/main/BloonBot.cs)
+* [Faster Forward](https://github.com/doombubbles/faster-forward)
+* [Auto Nudge](https://github.com/doombubbles/auto-nudge)
 
-* [x] Use training map to improve placement accuracy (Code: ZFFCFDK)
-
-* [ ] Use round data to inform purchase decisions
-
-* [ ] Take data as input
-
-A bot which plays BTD6 without human interaction.
-
-Uses tesseract to read game values from screen. Trained off bloons.traineddata to recognize font.
-
-Places towers in grid over map.
-
-Attempts to maximize money while minimizing lives lost.
-
-# Model
-
-* [x] Create model
-
-* [ ] Train model
-
-* [ ] Obtain misclassification rates for inheritance vs crossover vs hybrid
-
-Each attempt (Round 1 - game over) as an observation.
-
-Fitness determined by rount count, least lives lost, most money saved.
-
-Starts entirely random. Begins making decisions 2nd generation onward.
-
-For each pair of parents in a generation, 2 offspring are created. One using column-wise inheritance, and one using row-wise crossover.
+server.py must be running while game is open, otherwise slowdown will occur when BloonBot attempts to retrieve data.
